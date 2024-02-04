@@ -1,0 +1,14 @@
+# CubeMX File
+Core
+Drivers
+Middlewares
+startup_stm32f103xb.s
+STM32F103C8Tx_FLASH.ld
+Makefile
+
+# CMake
+build
+toolchain/config.CMake
+
+# vscode
+.vscode
