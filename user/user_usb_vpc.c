@@ -10,7 +10,7 @@
 
 //********** USB VPC 接收管理 **********//
 
-/** Received data over USB are stored in this buffer      */
+// 使用 ByteBuf 对象包裹系统的 USB 接收缓冲区
 extern uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 ByteBuf wrapRxBuf = {
     ._buf = UserRxBufferFS,
