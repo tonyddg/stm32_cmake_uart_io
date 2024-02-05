@@ -67,4 +67,3 @@ set(OpenOCDRoot "path_to/openocd 0.12.0-rc2" CACHE PATH "OpenOCD 工具链地址
 
 ## TODO
 * 关于缓冲区与常量数据块的说明
-* 常量数据块绑定信号量, 用于判断数据是否被销毁 (如检查发送完成)

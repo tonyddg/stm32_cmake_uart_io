@@ -23,7 +23,7 @@ void MainLoopTask(void *argument)
         // 使用 ByteBuf_Printf 函数创建格式化字符
         ByteBuf_Printf(printBuf, 0, "[REC]%s[REC]\r\n", resBuf->_buf);
         // 使用 ConstBuf_CreateByBuf 包裹缓冲区, 进行转换并发送
-        UART1SendData(ConstBuf_CreateByBuf(printBuf), 100);
+        UART1SendData(ConstBuf_CreateByBuf(printBuf, 0), 100);
 
         // 删除接收到的数据
         ConstBuf_Delete(resBuf);

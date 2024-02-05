@@ -71,17 +71,37 @@ uint8_t ByteBuf_Printf(ByteBuf* obj, uint8_t is_str, const char* format, ...)
 
 //////////////////
 
-ConstBuf* ConstBuf_CreateByBuf(const ByteBuf* obj)
+ConstBuf* ConstBuf_CreateByBuf(const ByteBuf* obj, uint8_t is_str)
 {
     ConstBuf* res = pvPortMalloc(sizeof(ConstBuf));
 
-    res->_buf = pvPortMalloc(obj->_len);
-    res->_len = obj->_len;
-    res->_is_real_const = 0;
+    // 当缓冲区已经满足字符串要求时, 不再修改
+    if(is_str && (obj->_buf[obj->_len - 1] == 0))
+    {
+        is_str = 0;
+    }
 
-    for(size_t i = 0; i < res->_len; i++)
+    if(is_str)
+    {
+        res->_len = obj->_len + 1;
+    }
+    else
+    {
+        res->_len = obj->_len;
+    }
+
+    res->_buf = pvPortMalloc(res->_len);
+    res->_is_real_const = 0;
+    res->_sid = NULL;
+
+    for(size_t i = 0; i < obj->_len; i++)
     {
         res->_buf[i] = obj->_buf[i];
+    }
+
+    if(is_str)
+    {
+        res->_buf[res->_len - 1] = 0;
     }
 
     return res;
@@ -94,6 +114,7 @@ ConstBuf* ConstBuf_CreateByStr(const char* obj)
     res->_buf = (uint8_t*)obj;
     res->_len = strlen(obj);
     res->_is_real_const = 1;
+    res->_sid = NULL;
 
     return res;
 }
@@ -104,5 +125,16 @@ void ConstBuf_Delete(ConstBuf* obj)
     {
         vPortFree(obj->_buf);
     }
+
+    if(obj->_sid != NULL)
+    {
+        osSemaphoreRelease(obj->_sid);
+    }
+
     vPortFree(obj);
+}
+
+void ConstBuf_BindSemaphore(ConstBuf* obj, osSemaphoreId_t sid)
+{
+    obj->_sid = sid;
 }

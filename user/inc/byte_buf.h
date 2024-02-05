@@ -13,6 +13,8 @@
 #define BYTE_BUF_DEF
 
 #include <stdint.h>
+#include "cmsis_os.h"
+
 typedef unsigned int size_t;
 
 /**
@@ -25,7 +27,7 @@ typedef struct BYTEBUF
 {
     // 缓冲区指针
     uint8_t* _buf;
-    // 有效内容长度
+    // 有效内容长度 (对于字符串, 将包含末尾的 \0)
     size_t _len;
     // 缓冲区长度
     size_t _size;
@@ -77,27 +79,31 @@ uint8_t ByteBuf_Printf(ByteBuf* obj, uint8_t is_str, const char* format, ...);
 ///////////////////
 
 /**
- * @brief 只读数据对象
+ * @brief 常量数据块对象
  */
 typedef struct CONSTBUF
 {
     // 只读数据指针
     uint8_t* _buf;
-    // 内容长度
+    // 内容长度 (对于字符串, 将包含末尾的 \0)
     size_t _len;
 
     // 是否是真常量
     uint8_t _is_real_const;
+
+    // 绑定信号量, 将在数据块销毁时释放, 不会自动创建
+    osSemaphoreId_t _sid;
 }ConstBuf;
 
 /**
  * @brief 通过已有的数据缓冲区创建只读数据
  * 
  * @param obj 数据缓冲区对象句柄
+ * @param is_str 是否扩展为字符串 (若末尾没有 \0, 则在末尾补充 \0)
  * @return ConstBuf* 只读数据对象句柄
  * @note 深构造, 将复制数据缓冲区的有效内容, 并在句柄销毁时一同被销毁
  */
-ConstBuf* ConstBuf_CreateByBuf(const ByteBuf* obj);
+ConstBuf* ConstBuf_CreateByBuf(const ByteBuf* obj, uint8_t is_str);
 
 /**
  * @brief 通过已有的常量数据创建只读数据
@@ -115,5 +121,7 @@ ConstBuf* ConstBuf_CreateByStr(const char* obj);
  * @note 实际根据标识 _is_real_const 决定是否销毁数据指针的内容
  */
 void ConstBuf_Delete(ConstBuf* obj);
+
+void ConstBuf_BindSemaphore(ConstBuf* obj, osSemaphoreId_t sid);
 
 #endif

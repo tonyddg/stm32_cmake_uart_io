@@ -89,7 +89,7 @@ const uint32_t UART1_RECEIVE_QUEUE_SIZE = 8;
 const uint32_t UART1_RECEIVE_BUF_SIZE = 256;
 // 结果数据块插入等待时间
 const uint32_t UART1_RECEIVE_WAIT_TIMEOUT = osWaitForever;
-// 是否将结果作为字符串处理 (将在末尾插入 \0, 但当缓冲区已满时, 将不会生效)
+// 是否将结果作为字符串处理
 const uint8_t UART1_RECEIVE_AS_STRING = 1;
 // 是否使用 DMA 进行接收
 const uint8_t UART1_REC_USE_DMA = 1;
@@ -147,14 +147,8 @@ void UART1ReceiveTask(void* args)
             recBuf->_len = len;
         }
 
-        // 在数据块末尾插入 0, 使之能被作为字符串处理
-        if(UART1_RECEIVE_AS_STRING)
-        {
-            ByteBuf_Push(recBuf, 0);
-        }
-
         // 将缓冲区数据复制到一个常量缓冲区中, 并缓存到接收队列
-        ConstBuf* tmpResBuf = ConstBuf_CreateByBuf(recBuf);
+        ConstBuf* tmpResBuf = ConstBuf_CreateByBuf(recBuf, UART1_RECEIVE_AS_STRING);
         osMessageQueuePut(uart1RecQueue, &tmpResBuf, 0, UART1_RECEIVE_WAIT_TIMEOUT);
     }
 }
