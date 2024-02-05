@@ -1,0 +1,70 @@
+# 适用于 USB VPC IO 示例项目
+add_definitions(
+    -DPROJECT_USB_VPC_IO
+)
+
+include(toolchain/config.cmake)
+include(toolchain/toolchain.cmake)
+
+# 项目配置
+cmake_minimum_required(VERSION 3.22)
+
+project(STM32_RTOS_HAL_IO C ASM) 
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON) 
+
+# 编译选项, 参考可 arm-none-eabi-gcc 的参数文档
+add_compile_options(-pipe -Wall -Werror -fmessage-length=0 # basic options
+                    -ffunction-sections -fdata-sections -fno-common # optimize options 
+                    )
+
+add_link_options(-pipe # 加速编译执行
+                -lc -lstdc++ -lm -lnosys # lib options
+                -flto -specs=nosys.specs # optimize options
+                -specs=nano.specs -Wl,-Map=${PROJECT_BINARY_DIR}/${PROJECT_NAME}.map -Wl,--cref -Wl,--gc-sections # 来自自动生成的 MakeFile
+                -Wl,--print-memory-usage # 打印内存使用
+                ) # if your executable is too large , try option '-s' to strip symbols
+
+set(ASM_SOURCES startup_stm32f103xb.s)
+set_source_files_properties(${ASM_SOURCES} PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp")
+
+file(GLOB_RECURSE SOURCES
+    "Drivers/*.c"
+    "Core/*.c"
+    "user/*.c"
+    "Middlewares/*.c"
+    "USB_DEVICE/*.c"
+)
+
+# HAL
+include_directories(Drivers/CMSIS/Include)
+include_directories(Drivers/CMSIS/Device/ST/STM32F1xx/Include)
+include_directories(Drivers/STM32F1xx_HAL_Driver/Inc/Legacy)
+include_directories(Drivers/STM32F1xx_HAL_Driver/Inc)
+# Core
+include_directories(Core/inc)
+# RTOS
+include_directories(Middlewares/Third_Party/FreeRTOS/Source/include)
+include_directories(Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2)
+include_directories(Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM3)
+# USB_DEVICE
+include_directories(USB_DEVICE/App)
+include_directories(USB_DEVICE/Target)
+include_directories(Middlewares/ST/STM32_USB_Device_Library/Core/Inc)
+include_directories(Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc)
+
+
+# User
+include_directories(user/inc)
+
+# build binary and hex file
+add_executable(${PROJECT_NAME}.elf  ${SOURCES} ${ASM_SOURCES} ${LINK_SCRIPT})
+
+add_custom_target(DOWNLOAD
+    COMMENT "EXCUTABLE SIZE:"
+    COMMAND ${SIZE} ${PROJECT_NAME}.elf
+    # 编译后自动下载
+    COMMENT "Auto Download by OpenOCD:"
+    COMMAND ${OpenOCDPath} -f"${OpenOCPInterface}" -f"${OpenOCPTarget}" -c"program ${PROJECT_NAME}.elf verify reset exit"
+)

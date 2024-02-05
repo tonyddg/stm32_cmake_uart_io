@@ -5,10 +5,12 @@ Middlewares
 startup_stm32f103xb.s
 STM32F103C8Tx_FLASH.ld
 Makefile
+USB_DEVICE
 
 # CMake
 build
 toolchain/config.CMake
+CMakeLists.txt
 
 # vscode
 .vscode

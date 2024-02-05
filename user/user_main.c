@@ -3,9 +3,11 @@
 #include "main.h"
 
 #include "user_main.h"
-#include "user_uart.h"
 
-// 主任务
+// UART IO 示例
+#ifdef PROJECT_UART_IO
+
+#include "user_uart.h"
 void MainLoopTask(void *argument)
 {   
     ConstBuf* resBuf = NULL;
@@ -31,6 +33,39 @@ void MainLoopTask(void *argument)
     }
     return;
 }
+
+#endif
+
+// USB VPC IO 示例
+#ifdef PROJECT_USB_VPC_IO
+
+#include "usbd_cdc_if.h"
+#include "user_usb_vpc.h"
+
+// 主任务
+void MainLoopTask(void *argument)
+{
+    ConstBuf* resBuf = NULL;
+    ByteBuf* printBuf = ByteBuf_Create(128);
+
+    while(1)
+    {
+        resBuf = USB_VPC_ReceiveData(osWaitForever);
+        if(resBuf == NULL)
+        {
+            Error_Handler();
+        }
+
+        ByteBuf_Printf(printBuf, 0, "[REC]%s[REC]\r\n", resBuf->_buf);
+        USB_VPC_SendData(ConstBuf_CreateByBuf(printBuf, 0), 100);
+
+        ConstBuf_Delete(resBuf);
+        resBuf = NULL;
+    }
+    return;
+}
+
+#endif
 
 // LED 闪烁任务
 void LedBlinkTask(void *argument)

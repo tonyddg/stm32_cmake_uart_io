@@ -1,3 +1,5 @@
+#ifdef PROJECT_UART_IO
+
 #include "stm32f1xx_hal.h"
 #include "usart.h"
 #include "cmsis_os.h"
@@ -159,3 +161,5 @@ ConstBuf* UART1ReceiveData(uint32_t timeout)
     osMessageQueueGet(uart1RecQueue, &tmpResBuf, NULL, timeout);
     return tmpResBuf;
 }
+
+#endif // DEBUG

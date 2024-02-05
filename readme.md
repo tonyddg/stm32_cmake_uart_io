@@ -1,6 +1,6 @@
-# STM32 CMAKE UART IO
+# STM32 RTOS HAL IO 示例
 
-一个基于 CubeMX, HAL, CMSIS RTOS 与 CMake 的 UART IO 示例项目
+一个基于 CubeMX, HAL, CMSIS RTOS 与 CMake 的各种外设 IO 示例项目
 
 ## 项目环境
 * STM32 CubeMX v6.6.1
@@ -11,10 +11,13 @@
 * 编译器 gcc-arm-none-eabi-10.3-2021.10
 * Windows10, vscode
 
-## 部署
-首先打开 CubeMX 项目文件 `stm32_cmake_uart_io.ioc` 并生成代码
+## 包含项目
+* `uart_io` 基于 UART 的 IO 范例, 使用外设 UART1, DMA, GPIOC Pin13 (LED) 
+* `usb_vpc` 基于 USB VPC 的 IO 范例, 使用外设 USB DEVICE, GPIOC Pin13(LED)
 
-之后创建文件 `toolchain/config.cmake` 并在其中定义变量 `TOOLCHAIN_PATH` 与 `OpenOCDRoot` 以确定 openocd 与 gcc-arm-none-eabi 的路径  
+## 部署
+### 首次部署
+创建文件 `toolchain/config.cmake` 并在其中定义变量 `TOOLCHAIN_PATH` 与 `OpenOCDRoot` 以确定 openocd 与 gcc-arm-none-eabi 的路径  
 可参考以下格式
 
 ```cmake
@@ -24,6 +27,25 @@ set(TOOLCHAIN_PATH "path_to/gcc-arm-none-eabi-10.3-2021.10/bin" CACHE PATH "arm-
 # OpenOCD 路径
 set(OpenOCDRoot "path_to/openocd 0.12.0-rc2" CACHE PATH "OpenOCD 工具链地址")
 ```
+
+### 一般项目部署
+将 `project` 文件夹中的 `CMakeLists_<项目名>.txt` 与 `<项目名>.ioc` 移动到根目录下  
+
+删除 `CMakeLists_<项目名>.txt` 文件名的后缀, 留下 `CMakeLists.txt`  
+
+打开 CubeMX 项目 `<项目名>.ioc`, 并生成代码
+
+### usb_vpc 项目的部署
+生成代码后  
+
+在 Core/Src/main.c 中 
+* `/* USER CODE BEGIN SysInit */` 下添加 `MX_USB_DEVICE_Init();`  
+
+在 USB_DEVICE/APP/usbd_cdc_if.c 中
+* `/* USER CODE BEGIN INCLUDE */` 下添加 `#include "user_usb_vpc.h"`  
+* 函数 `CDC_Receive_FS` 末尾添加 `USB_VPC_ReceiveCmpltCallBack(*Len);`
+
+使用该项目前, 请检查有关电路是否正确, 以及安装驱动 <https://www.stmcu.com.cn/Designresource/detail/software/709654>
 
 ## 编译
 * 目标 `STM32_CMAKE_UART_IO.elf` 将生成用于烧录的 elf 文件
@@ -35,6 +57,7 @@ set(OpenOCDRoot "path_to/openocd 0.12.0-rc2" CACHE PATH "OpenOCD 工具链地址
     * `byte_buf.c/h` 定义可变与常量缓冲区对象
     * `user_main.c/h` 定义主要任务函数
     * `user_uart.c/h` 定义 UART IO 函数与管理任务
+* `project` 部署项目文件
 
 ## 基本原理
 具体函数见源文件中的 Doxygen 注释
@@ -65,5 +88,8 @@ set(OpenOCDRoot "path_to/openocd 0.12.0-rc2" CACHE PATH "OpenOCD 工具链地址
 * 以常量数据块句柄 `ConstBuf*` 的方式返回接收到的数据块  
 * 由接收者负责销毁数据块
 
+其余外设与 UART 基本相同
+
 ## TODO
 * 关于缓冲区与常量数据块的说明
+* 其他外设的 IO 示例
