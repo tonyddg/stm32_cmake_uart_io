@@ -79,7 +79,14 @@ osStatus_t UART1SendData(ConstBuf* data, uint32_t timeout)
         return osError;
     }
 
-    return osMessageQueuePut(uart1SendQueue, &data, 0, timeout);
+    osStatus_t res = osMessageQueuePut(uart1SendQueue, &data, 0, timeout);
+
+    // 插入队列失败时, 自动删除数据块
+    if(res != osOK)
+    {
+        ConstBuf_Delete(data);
+    }
+    return res;
 }
 
 UARTSendState UART1SendGetState()
@@ -87,6 +94,14 @@ UARTSendState UART1SendGetState()
     if(uart1SendQueue == NULL)
     {
         return UART_SEND_UNINIT;
+    }
+    else if(HAL_UART_GetState(&huart1) == HAL_UART_STATE_ERROR)
+    {
+        return UART_SEND_ERROR;
+    }
+    else if(HAL_UART_GetState(&huart1) == HAL_UART_STATE_RESET)
+    {
+        return UART_SEND_RESET;
     }
     else if(osMessageQueueGetCount(uart1SendQueue) == UART1_SEND_QUEUE_SIZE)
     {
@@ -104,8 +119,6 @@ UARTSendState UART1SendGetState()
 const uint32_t UART1_RECEIVE_QUEUE_SIZE = 8;
 // 读取缓冲区长度
 const uint32_t UART1_RECEIVE_BUF_SIZE = 256;
-// 结果数据块插入等待时间
-const uint32_t UART1_RECEIVE_WAIT_TIMEOUT = osWaitForever;
 // 是否将结果作为字符串处理
 const uint8_t UART1_RECEIVE_AS_STRING = 1;
 // 是否使用 DMA 进行接收
@@ -163,9 +176,17 @@ void UART1ReceiveTask(void* args)
             recBuf->_len = len;
         #endif
 
+        ConstBuf* tmpResBuf = NULL;
+        // 当队列满时, 删除最早插入的数据
+        if(osMessageQueueGetCount(uart1RecQueue) == UART1_RECEIVE_QUEUE_SIZE)
+        {
+            tmpResBuf = UART1ReceiveData(osWaitForever);
+            ConstBuf_Delete(tmpResBuf);
+        }
+
         // 将缓冲区数据复制到一个常量缓冲区中, 并缓存到接收队列
-        ConstBuf* tmpResBuf = ConstBuf_CreateByBuf(recBuf, UART1_RECEIVE_AS_STRING);
-        osMessageQueuePut(uart1RecQueue, &tmpResBuf, 0, UART1_RECEIVE_WAIT_TIMEOUT);
+        tmpResBuf = ConstBuf_CreateByBuf(recBuf, UART1_RECEIVE_AS_STRING);
+        osMessageQueuePut(uart1RecQueue, &tmpResBuf, 0, osWaitForever);
     }
 }
 
@@ -181,6 +202,14 @@ UARTRecState UART1ReceiveGetState()
     if(uart1RecQueue == NULL)
     {
         return UART_REC_UNINIT;
+    }
+    else if(HAL_UART_GetState(&huart1) == HAL_UART_STATE_ERROR)
+    {
+        return UART_REC_ERROR;
+    }
+    else if(HAL_UART_GetState(&huart1) == HAL_UART_STATE_RESET)
+    {
+        return UART_REC_RESET;
     }
     else if(osMessageQueueGetCount(uart1RecQueue) == 0)
     {

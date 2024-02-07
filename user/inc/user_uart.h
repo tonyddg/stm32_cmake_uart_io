@@ -12,7 +12,11 @@ typedef enum UARTSENDSTATE
     // 未初始化
     UART_SEND_UNINIT,
     // 发送队列已满
-    UART_SEND_QUEUEFULL
+    UART_SEND_QUEUEFULL,
+    // 外设错误
+    UART_SEND_ERROR,
+    // 外设未初始化
+    UART_SEND_RESET
 } UARTSendState;
 
 /**
@@ -41,7 +45,11 @@ typedef enum UARTRECSTATE
     // 未初始化
     UART_REC_UNINIT,
     // 发送队列空
-    UART_REC_EMPTY
+    UART_REC_EMPTY,
+    // 外设错误
+    UART_REC_ERROR,
+    // 外设未初始化
+    UART_REC_RESET
 } UARTRecState;
 
 /**
