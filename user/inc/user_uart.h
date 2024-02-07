@@ -5,6 +5,16 @@
 #include "cmsis_os.h"
 #include "byte_buf.h"
 
+typedef enum UARTSENDSTATE
+{
+    // 就绪
+    UART_SEND_READY,
+    // 未初始化
+    UART_SEND_UNINIT,
+    // 发送队列已满
+    UART_SEND_QUEUEFULL
+} UARTSendState;
+
 /**
  * @brief 通过 UART1 异步发送数据
  * 
@@ -18,6 +28,23 @@
 osStatus_t UART1SendData(ConstBuf* data, uint32_t timeout);
 
 /**
+ * @brief 获取当前 UART 发送任务状态
+ * 
+ * @return UARTSendState 当前发送任务状态
+ */
+UARTSendState UART1SendGetState();
+
+typedef enum UARTRECSTATE
+{
+    // 就绪
+    UART_REC_READY,
+    // 未初始化
+    UART_REC_UNINIT,
+    // 发送队列空
+    UART_REC_EMPTY
+} UARTRecState;
+
+/**
  * @brief 通过 UART1 等待接收数据
  * 
  * @param timeout 接收队列等待时间, 即 osMessageQueuePut 的 timeout 参数
@@ -27,5 +54,12 @@ osStatus_t UART1SendData(ConstBuf* data, uint32_t timeout);
  * @example resBuf = UART1ReceiveData(osWaitForever);
  */
 ConstBuf* UART1ReceiveData(uint32_t timeout);
+
+/**
+ * @brief 获取当前 UART 接收任务状态
+ * 
+ * @return UARTRecState 当前发送任务状态
+ */
+UARTRecState UART1ReceiveGetState();
 
 #endif
