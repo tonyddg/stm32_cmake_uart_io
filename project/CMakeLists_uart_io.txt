@@ -1,6 +1,7 @@
 # 适用于 UART IO 示例项目
 add_definitions(
     -DPROJECT_UART_IO
+    -DUSE_UART
 )
 
 include(toolchain/config.cmake)

@@ -1,6 +1,7 @@
 # 适用于 USB VPC IO 示例项目
 add_definitions(
     -DPROJECT_USB_VPC_IO
+    -DUSE_USB_VPC
 )
 
 include(toolchain/config.cmake)
