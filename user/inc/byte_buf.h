@@ -106,9 +106,28 @@ typedef struct CONSTBUF
 ConstBuf* ConstBuf_CreateByBuf(const ByteBuf* obj, uint8_t is_str);
 
 /**
+ * @brief 创建单字节的只读数据
+ * 
+ * @param byte 只读数据中的字节
+ * @return ConstBuf* 只读数据对象句柄
+ * @note 不建议使用, 效率较低
+ */
+ConstBuf* ConstBuf_CreateByByte(uint8_t byte);
+
+/**
  * @brief 通过已有的常量数据创建只读数据
  * 
- * @param obj 常量数据指针
+ * @param buf 常量数据指针
+ * @param len 常量数据长度
+ * @return ConstBuf* 只读数据对象句柄
+ * @note 浅构造, 不会销毁常量数据
+ */
+ConstBuf* ConstBuf_CreateByConst(const uint8_t* buf, size_t len);
+
+/**
+ * @brief 通过已有的常量字符串创建只读数据
+ * 
+ * @param obj 常量字符串指针
  * @return ConstBuf* 只读数据对象句柄
  * @note 浅构造, 不会销毁常量数据
  */

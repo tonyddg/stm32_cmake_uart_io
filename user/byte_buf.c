@@ -107,16 +107,34 @@ ConstBuf* ConstBuf_CreateByBuf(const ByteBuf* obj, uint8_t is_str)
     return res;
 }
 
-ConstBuf* ConstBuf_CreateByStr(const char* obj)
+ConstBuf* ConstBuf_CreateByByte(uint8_t byte)
+{
+    ConstBuf* res = pvPortMalloc(sizeof(ConstBuf));
+    res->_buf = pvPortMalloc(1);
+    res->_is_real_const = 0;
+    res->_len = 1;
+    res->_sid = NULL;
+
+    res->_buf[0] = byte;
+
+    return res;
+}
+
+ConstBuf* ConstBuf_CreateByConst(const uint8_t* buf, size_t len)
 {
     ConstBuf* res = pvPortMalloc(sizeof(ConstBuf));
 
-    res->_buf = (uint8_t*)obj;
-    res->_len = strlen(obj);
+    res->_buf = (uint8_t*)buf;
+    res->_len = len;
     res->_is_real_const = 1;
     res->_sid = NULL;
 
     return res;
+}
+
+ConstBuf* ConstBuf_CreateByStr(const char* obj)
+{
+    return ConstBuf_CreateByConst((const uint8_t*)obj, strlen(obj) + 1);
 }
 
 void ConstBuf_Delete(ConstBuf* obj)
