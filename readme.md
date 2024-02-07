@@ -75,6 +75,8 @@ set(OpenOCDRoot "path_to/openocd 0.12.0-rc2" CACHE PATH "OpenOCD 工具链地址
 * 通过 `ConstBuf_CreateByBuf/Str` 基于缓冲区的有效内容 (复制) 或常量字符串 (直接引用) 创建常量数据块 
 * 将常量数据块句柄传入发送数据暂存队列
 
+当插入发送队列出错时, 将由 `UART1SendData` 负责将待发送的常量数据块删除
+
 ### UART 数据接收
 使用一个接收数据暂存队列与接收管理任务实现对于数据发送的管理
 
@@ -88,6 +90,9 @@ set(OpenOCDRoot "path_to/openocd 0.12.0-rc2" CACHE PATH "OpenOCD 工具链地址
 * 以常量数据块句柄 `ConstBuf*` 的方式返回接收到的数据块  
 * 由接收者负责销毁数据块
 
+当接收队列已满时, 将由 `UART1RecTask` 负责删除最早接收到的数据
+
+### 其他外设
 其余外设与 UART 基本相同
 
 ## TODO
