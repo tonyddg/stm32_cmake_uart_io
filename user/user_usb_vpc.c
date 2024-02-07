@@ -1,4 +1,4 @@
-#ifdef PROJECT_USB_VPC_IO
+#ifdef USE_USB_VPC
 
 #include "stm32f1xx_hal.h"
 #include "cmsis_os.h"
@@ -7,6 +7,8 @@
 #include "user_usb_vpc.h"
 
 #include "usbd_cdc_if.h"
+
+extern PCD_HandleTypeDef hpcd_USB_FS;
 
 //********** USB VPC 接收管理 **********//
 
@@ -66,6 +68,30 @@ ConstBuf* USB_VPC_ReceiveData(uint32_t timeout)
     return tmpResBuf;
 }
 
+USB_VPC_RecState USB_VPC_ReceiveGetState()
+{
+    if(uvRecQueue == NULL)
+    {
+        return USB_VPC_REC_UNINIT;
+    }
+    else if(HAL_PCD_GetState(&hpcd_USB_FS) == HAL_PCD_STATE_ERROR)
+    {
+        return USB_VPC_REC_ERROR;
+    }
+    else if(HAL_PCD_GetState(&hpcd_USB_FS) == HAL_PCD_STATE_RESET)
+    {
+        return USB_VPC_REC_RESET;
+    }
+    else if(osMessageQueueGetCount(uvRecQueue) == 0)
+    {
+        return USB_VPC_REC_EMPTY;
+    }
+    else
+    {
+        return USB_VPC_REC_READY;
+    }
+}
+
 //********** USB VPC 发送管理 **********//
 
 // USB VPC 发送队列长度
@@ -104,6 +130,30 @@ osStatus_t USB_VPC_SendData(ConstBuf* data, uint32_t timeout)
     }
 
     return osMessageQueuePut(uvSendQueue, &data, 0, timeout);
+}
+
+USB_VPC_SendState USB_VPC_SendGetState()
+{
+    if(uvSendQueue == NULL)
+    {
+        return USB_VPC_SEND_UNINIT;
+    }
+    else if(HAL_PCD_GetState(&hpcd_USB_FS) == HAL_PCD_STATE_ERROR)
+    {
+        return USB_VPC_SEND_ERROR;
+    }
+    else if(HAL_PCD_GetState(&hpcd_USB_FS) == HAL_PCD_STATE_RESET)
+    {
+        return USB_VPC_SEND_RESET;
+    }
+    else if(osMessageQueueGetCount(uvSendQueue) == USB_VPC_SEND_QUEUE_SIZE)
+    {
+        return USB_VPC_SEND_QUEUEFULL;
+    }
+    else
+    {
+        return USB_VPC_SEND_READY;
+    }
 }
 
 #endif

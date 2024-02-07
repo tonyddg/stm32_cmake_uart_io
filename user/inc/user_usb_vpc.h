@@ -12,6 +12,27 @@
  */
 void USB_VPC_ReceiveCmpltCallBack(uint32_t len);
 
+typedef enum USB_VPC_RECSTATE
+{
+    // 就绪
+    USB_VPC_REC_READY,
+    // 未初始化
+    USB_VPC_REC_UNINIT,
+    // 发送队列空
+    USB_VPC_REC_EMPTY,
+    // 外设错误
+    USB_VPC_REC_ERROR,
+    // 外设未初始化
+    USB_VPC_REC_RESET
+} USB_VPC_RecState;
+
+/**
+ * @brief 获取当前 USB VPC 接收任务状态
+ * 
+ * @return USB_VPC_RecState 当前接收任务状态
+ */
+USB_VPC_RecState USB_VPC_ReceiveGetState();
+
 /**
  * @brief 通过 USB VPC 等待接收数据
  * 
@@ -21,6 +42,27 @@ void USB_VPC_ReceiveCmpltCallBack(uint32_t len);
  * @note 该函数为线程安全的, 建议使用此函数接收数据
  */
 ConstBuf* USB_VPC_ReceiveData(uint32_t timeout);
+
+typedef enum USB_VPC_SENDSTATE
+{
+    // 就绪
+    USB_VPC_SEND_READY,
+    // 未初始化
+    USB_VPC_SEND_UNINIT,
+    // 发送队列已满
+    USB_VPC_SEND_QUEUEFULL,
+    // 外设错误
+    USB_VPC_SEND_ERROR,
+    // 外设未初始化
+    USB_VPC_SEND_RESET
+} USB_VPC_SendState;
+
+/**
+ * @brief 获取当前 USB VPC 发送任务状态
+ * 
+ * @return USB_VPC_SendState 当前发送任务状态
+ */
+USB_VPC_SendState USB_VPC_SendGetState();
 
 /**
  * @brief 通过 USB VPC 异步发送数据
