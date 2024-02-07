@@ -24,8 +24,6 @@ ByteBuf wrapRxBuf = {
 const uint32_t USB_VPC_RECEIVE_QUEUE_SIZE = 8;
 // 读取缓冲区长度
 const uint32_t USB_VPC_RECEIVE_BUF_SIZE = APP_RX_DATA_SIZE;
-// 结果数据块插入等待时间
-const uint32_t USB_VPC_RECEIVE_WAIT_TIMEOUT = osWaitForever;
 // 是否将结果作为字符串处理
 const uint8_t USB_VPC_RECEIVE_AS_STRING = 1;
 
@@ -55,9 +53,17 @@ void USB_VPC_ReceiveTask(void* args)
         // 等待一次数据接收完成
         osSemaphoreAcquire(uvRecDone, osWaitForever);            
 
+        ConstBuf* tmpResBuf = NULL;
+        // 当队列满时, 删除最早插入的数据
+        if(osMessageQueueGetCount(uvRecQueue) == USB_VPC_RECEIVE_QUEUE_SIZE)
+        {
+            tmpResBuf = USB_VPC_ReceiveData(osWaitForever);
+            ConstBuf_Delete(tmpResBuf);
+        }
+
         // 将缓冲区数据复制到一个常量缓冲区中, 并缓存到接收队列
-        ConstBuf* tmpResBuf = ConstBuf_CreateByBuf(&wrapRxBuf, USB_VPC_RECEIVE_AS_STRING);
-        osMessageQueuePut(uvRecQueue, &tmpResBuf, 0, USB_VPC_RECEIVE_WAIT_TIMEOUT);
+        tmpResBuf = ConstBuf_CreateByBuf(&wrapRxBuf, USB_VPC_RECEIVE_AS_STRING);
+        osMessageQueuePut(uvRecQueue, &tmpResBuf, 0, osWaitForever);
     }
 }
 
@@ -129,7 +135,14 @@ osStatus_t USB_VPC_SendData(ConstBuf* data, uint32_t timeout)
         return osError;
     }
 
-    return osMessageQueuePut(uvSendQueue, &data, 0, timeout);
+    osStatus_t res = osMessageQueuePut(uvSendQueue, &data, 0, timeout);
+
+    // 插入队列失败时, 自动删除数据块
+    if(res != osOK)
+    {
+        ConstBuf_Delete(data);
+    }
+    return res;
 }
 
 USB_VPC_SendState USB_VPC_SendGetState()
