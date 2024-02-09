@@ -13,6 +13,8 @@
 
 // UART1 发送队列长度
 const uint32_t UART1_SEND_QUEUE_SIZE = 8;
+// 发送等待时长
+const uint32_t UART1_SEND_TIMEOUT = HAL_MAX_DELAY;
 // 是否使用 DMA 进行发送
 #define UART1_SEND_USE_DMA 0
 
@@ -59,9 +61,9 @@ void UART1SendTask(void* args)
                 Error_Handler();
             }
             // 等待发送完成
-            osSemaphoreAcquire(uart1SendDone, osWaitForever);            
+            osSemaphoreAcquire(uart1SendDone, UART1_SEND_TIMEOUT);            
         #else
-            if(HAL_UART_Transmit(&huart1, sendData->_buf, sendData->_len, 0xFFFFFFFFU) != HAL_OK)
+            if(HAL_UART_Transmit(&huart1, sendData->_buf, sendData->_len, UART1_SEND_TIMEOUT) != HAL_OK)
             {
                 Error_Handler();
             } 
@@ -121,8 +123,10 @@ const uint32_t UART1_RECEIVE_QUEUE_SIZE = 8;
 const uint32_t UART1_RECEIVE_BUF_SIZE = 256;
 // 是否将结果作为字符串处理
 const uint8_t UART1_RECEIVE_AS_STRING = 1;
+// 接收后插入接收队列的等待时长
+const uint32_t UART1_RECEIVE_TIMEOUT = HAL_MAX_DELAY;
 // 是否使用 DMA 进行接收
-#define UART1_REC_USE_DMA 0
+#define UART1_REC_USE_DMA 1
 
 // 接收数据暂存队列 (以暂存的常量数据块为元素)
 osMessageQueueId_t uart1RecQueue = NULL;
@@ -169,24 +173,27 @@ void UART1ReceiveTask(void* args)
         #else
             uint16_t len = 0;
 
-            if(HAL_UARTEx_ReceiveToIdle(&huart1, recBuf->_buf, recBuf->_size, &len, 0xFFFFFFFFu))
+            if(HAL_UARTEx_ReceiveToIdle(&huart1, recBuf->_buf, recBuf->_size, &len, HAL_MAX_DELAY))
             {
                 Error_Handler();
             }
             recBuf->_len = len;
         #endif
 
-        ConstBuf* tmpResBuf = NULL;
-        // 当队列满时, 删除最早插入的数据
-        if(osMessageQueueGetCount(uart1RecQueue) == UART1_RECEIVE_QUEUE_SIZE)
-        {
-            tmpResBuf = UART1ReceiveData(osWaitForever);
-            ConstBuf_Delete(tmpResBuf);
-        }
-
         // 将缓冲区数据复制到一个常量缓冲区中, 并缓存到接收队列
-        tmpResBuf = ConstBuf_CreateByBuf(recBuf, UART1_RECEIVE_AS_STRING);
-        osMessageQueuePut(uart1RecQueue, &tmpResBuf, 0, osWaitForever);
+        ConstBuf* tmpResBuf = ConstBuf_CreateByBuf(recBuf, UART1_RECEIVE_AS_STRING);
+        osStatus_t res = osOK;
+
+        do
+        {
+            res = osMessageQueuePut(uart1RecQueue, &tmpResBuf, 0, UART1_RECEIVE_TIMEOUT);
+            // 当队列满时, 删除最早插入的数据
+            if(res == osErrorTimeout)
+            {
+                ConstBuf* tmpAbanBuf = UART1ReceiveData(osWaitForever);
+                ConstBuf_Delete(tmpAbanBuf);                
+            }
+        } while (res == osErrorTimeout);
     }
 }
 

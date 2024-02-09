@@ -26,6 +26,8 @@ const uint32_t USB_VPC_RECEIVE_QUEUE_SIZE = 8;
 const uint32_t USB_VPC_RECEIVE_BUF_SIZE = APP_RX_DATA_SIZE;
 // 是否将结果作为字符串处理
 const uint8_t USB_VPC_RECEIVE_AS_STRING = 1;
+// 接收后插入接收队列的等待时长
+const uint32_t USB_VPC_RECEIVE_TIMEOUT = HAL_MAX_DELAY;
 
 // 接收数据暂存队列 (以暂存的常量数据块为元素)
 osMessageQueueId_t uvRecQueue = NULL;
@@ -53,17 +55,20 @@ void USB_VPC_ReceiveTask(void* args)
         // 等待一次数据接收完成
         osSemaphoreAcquire(uvRecDone, osWaitForever);            
 
-        ConstBuf* tmpResBuf = NULL;
-        // 当队列满时, 删除最早插入的数据
-        if(osMessageQueueGetCount(uvRecQueue) == USB_VPC_RECEIVE_QUEUE_SIZE)
-        {
-            tmpResBuf = USB_VPC_ReceiveData(osWaitForever);
-            ConstBuf_Delete(tmpResBuf);
-        }
-
         // 将缓冲区数据复制到一个常量缓冲区中, 并缓存到接收队列
-        tmpResBuf = ConstBuf_CreateByBuf(&wrapRxBuf, USB_VPC_RECEIVE_AS_STRING);
-        osMessageQueuePut(uvRecQueue, &tmpResBuf, 0, osWaitForever);
+        ConstBuf* tmpResBuf = ConstBuf_CreateByBuf(&wrapRxBuf, USB_VPC_RECEIVE_AS_STRING);
+        osStatus_t res = osOK;
+
+        do
+        {
+            res = osMessageQueuePut(uvRecQueue, &tmpResBuf, 0, USB_VPC_RECEIVE_TIMEOUT);
+            // 当队列满时, 删除最早插入的数据
+            if(res == osErrorTimeout)
+            {
+                ConstBuf* tmpAbanBuf = USB_VPC_ReceiveData(osWaitForever);
+                ConstBuf_Delete(tmpAbanBuf);                
+            }
+        } while (res == osErrorTimeout);
     }
 }
 
