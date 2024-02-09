@@ -14,6 +14,8 @@
 ## 包含项目
 * `uart_io` 基于 UART 的 IO 范例, 使用外设 UART1, DMA, GPIOC Pin13 (LED) 
 * `usb_vpc` 基于 USB VPC 的 IO 范例, 使用外设 USB DEVICE, GPIOC Pin13(LED)
+* `i2c_cmd_usb_vpc` 通过 USB VPC 传输指令的 I2C 主机控制台, 使用外设 USB DEVICE, I2C1, GPIOC Pin13 (LED)
+* `i2c_cmd_uart` 通过 UART 传输指令的 I2C 主机控制台, 使用外设 UART1, I2C1, GPIOC Pin13 (LED) 
 
 ## 部署
 ### 首次部署
@@ -47,6 +49,10 @@ set(OpenOCDRoot "path_to/openocd 0.12.0-rc2" CACHE PATH "OpenOCD 工具链地址
 
 使用该项目前, 请检查有关电路是否正确, 以及安装驱动 <https://www.stmcu.com.cn/Designresource/detail/software/709654>
 
+### i2c_cmd_usb_vpc 项目部署
+与 [usb_vpc 项目的部署](#usb_vpc 项目的部署)一致  
+当使用 CMake 编译时, 不能使用配置 Debug, 应采用其他 Release 配置
+
 ## 编译
 * 目标 `STM32_CMAKE_UART_IO.elf` 将生成用于烧录的 elf 文件
 * 伪目标 `DOWNLOAD` 将通过 openOCD 将编译结果通过 DAP 烧录至单片机
@@ -57,6 +63,8 @@ set(OpenOCDRoot "path_to/openocd 0.12.0-rc2" CACHE PATH "OpenOCD 工具链地址
     * `byte_buf.c/h` 定义可变与常量缓冲区对象
     * `user_main.c/h` 定义主要任务函数
     * `user_uart.c/h` 定义 UART IO 函数与管理任务
+    * `user_usb_vpc.c/h` 定义 USB VPC IO 函数与管理任务 
+    * `user_i2c.c/h` 定义 I2C 主机控制台相关函数与管理任务
 * `project` 部署项目文件
 
 ## 基本原理
@@ -90,11 +98,24 @@ set(OpenOCDRoot "path_to/openocd 0.12.0-rc2" CACHE PATH "OpenOCD 工具链地址
 * 以常量数据块句柄 `ConstBuf*` 的方式返回接收到的数据块  
 * 由接收者负责销毁数据块
 
-当接收队列已满时, 将由 `UART1RecTask` 负责删除最早接收到的数据
+当接收队列已满导致插入时间超过等待时间, 将由 `UART1RecTask` 负责删除最早接收到的数据, 并再次尝试插入, 直到插入成功
 
-### 其他外设
-其余外设与 UART 基本相同
+### USB VPC 数据收发
+与 UART 基本相同
+
+### I2C 主机控制台
+使用一个统一的任务队列管理 I2C  
+提供向寄存器接收数据, 向寄存器发送数据与测试外设地址的功能
+
+在管理任务 `I2CManageTask` 中
+* 首先阻塞等待任务进入任务队列
+* 根据任务类型, 执行对应的 HAL 方法, 并检查操作是否成功 (DMA 则通过信号量与回调函数, 等待任务完成)
+* 操作完成后, 执行任务中注册的回调函数, 最后销毁任务对象, 并处理下一个任务
+
+在 I2C 主机控制台中, 所有后续操作都需要通过回调函数完成
 
 ## TODO
 * 关于缓冲区与常量数据块的说明
 * 其他外设的 IO 示例
+* 将管理函数名与实际外设分离
+* 提供函数的配置说明
