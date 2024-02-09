@@ -8,6 +8,8 @@ Makefile
 USB_DEVICE
 .mxproject
 *.ioc
+!/project/*.ioc
+
 
 # CMake
 build
