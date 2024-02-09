@@ -106,6 +106,18 @@ typedef struct CONSTBUF
 ConstBuf* ConstBuf_CreateByBuf(const ByteBuf* obj, uint8_t is_str);
 
 /**
+ * @brief 截取已有的数据缓冲区创建只读数据
+ * 
+ * @param buf 被截取的缓冲区
+ * @param beg 开始截取位置, 包括该位置, 当大于有效位置时, 返回 NULL
+ * @param end 停止截取位置, 不包括该位置, 当小于等于 beg 或超过有效长度时则截取到有效末尾
+ * @param is_str 是否扩展为字符串 (若末尾没有 \0, 则在末尾补充 \0)
+ * @return ConstBuf* 只读数据对象句柄
+ * @note 深构造, 将复制数据缓冲区的有效内容, 并在句柄销毁时一同被销毁
+ */
+ConstBuf* ConstBuf_CreateExtBuf(const uint8_t* buf, size_t buf_len, size_t beg, size_t end, uint8_t is_str);
+
+/**
  * @brief 创建单字节的只读数据
  * 
  * @param byte 只读数据中的字节
@@ -134,6 +146,15 @@ ConstBuf* ConstBuf_CreateByConst(const uint8_t* buf, size_t len);
 ConstBuf* ConstBuf_CreateByStr(const char* obj);
 
 /**
+ * @brief 创建一个指定长度的空常量缓冲区
+ * 
+ * @param len 缓冲区长度
+ * @return ConstBuf* 只读数据对象句柄
+ * @note 用于接收定长数据, 不建议单独使用
+ */
+ConstBuf* ConstBuf_CreateEmpty(size_t len);
+
+/**
  * @brief 销毁只读数据对象
  * 
  * @param obj 只读数据对象句柄
@@ -141,6 +162,33 @@ ConstBuf* ConstBuf_CreateByStr(const char* obj);
  */
 void ConstBuf_Delete(ConstBuf* obj);
 
+/**
+ * @brief 将常量数据块与信号量绑定, 在数据对象被销毁时释放信号量
+ * 
+ * @param obj 被绑定的只读数据对象
+ * @param sid 待绑定的信号量
+ */
 void ConstBuf_BindSemaphore(ConstBuf* obj, osSemaphoreId_t sid);
+
+//////////////////////
+
+/**
+ * @brief 解析调试字符串 (命令体 + 空格 + 大写 16 进制字符串)
+ * 
+ * @param str 被解析的常量缓冲区 (末尾不要求有 '\0')
+ * @param body 命令体 (字符串, 末尾有 '\0')
+ * @param args 命令参数 (一般常量缓冲区, 末尾无 '\0')
+ * @return uint8_t 当调试字符串提前结束时返回 0, 成功解析时返回 1
+ */
+uint8_t CommandResolveText(const ConstBuf* str, ConstBuf** body, ConstBuf** args);
+
+/**
+ * @brief 将数据缓冲区的数据转为十六进制的字符串
+ * 
+ * @param buf 被转换的缓冲区指针
+ * @param len 缓冲区长度
+ * @return ConstBuf* 转换为字符串的只读数据对象
+ */
+ConstBuf* ConstBuf_BufToHex(const uint8_t* buf, size_t len);
 
 #endif
